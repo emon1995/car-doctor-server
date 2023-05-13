@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
@@ -20,6 +21,25 @@ const client = new MongoClient(uri, {
   },
 });
 
+const verifyJwt = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "unauthorized access" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_WEB_TOKEN, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     // services database
@@ -35,6 +55,16 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    // jwt token
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_WEB_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
 
     // services
     app.get("/services", async (req, res) => {
@@ -53,8 +83,15 @@ async function run() {
     });
 
     // Bookings
-    app.get("/bookings", async (req, res) => {
-      //   console.log(req.query);
+    app.get("/bookings", verifyJwt, async (req, res) => {
+      const decoded = req.decoded;
+
+      if (decoded.email !== req.query.email) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+
       let query = {};
       if (req.query?.email) {
         query = { email: req.query?.email };
