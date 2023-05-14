@@ -21,7 +21,6 @@ const client = new MongoClient(uri, {
   },
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  maxPoolSize: 10,
 });
 
 const verifyJwt = (req, res, next) => {
