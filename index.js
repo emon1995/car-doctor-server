@@ -19,6 +19,9 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  maxPoolSize: 10,
 });
 
 const verifyJwt = (req, res, next) => {
@@ -48,7 +51,10 @@ async function run() {
     const bookingCollection = client.db("carDoctor").collection("bookings");
 
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    await client.connect((err) => {
+      console.error(err);
+      return;
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
